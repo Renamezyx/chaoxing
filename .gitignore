@@ -141,7 +141,7 @@ uv.lock
 .cookies.txt
 cookies.txt
 .config.ini
-config.ini
+#config.ini
 chaoxing.log
 config*.ini
 .chaoxing.log
@@ -150,4 +150,4 @@ config*.ini
 ./cookies.txt
 .idea/
 .vscode/
-cache.json
+#cache.json

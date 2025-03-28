@@ -5,7 +5,7 @@ import json
 from api.logger import logger
 import random
 from urllib3 import disable_warnings,exceptions
-from openai import OpenAI
+# from openai import OpenAI
 import httpx
 from re import sub
 # 关闭警告

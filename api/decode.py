@@ -13,7 +13,7 @@ def decode_course_list(_text):
     _course_list = list()
     for course in _raw_courses:
         if not course.select_one("a.not-open-tip") and not course.select_one(
-            "div.not-open-tip"
+                "div.not-open-tip"
         ):
             _course_detail = {}
             _course_detail["id"] = course.attrs["id"]
@@ -64,7 +64,7 @@ def decode_course_point(_text):
         "hasLocked": False,  # 用于判断该课程任务是否是需要解锁
         "points": [],
     }
-
+    _course_point["enc"] = _soup.find(id="enc")["value"]
     for _chapter_unit in _soup.find_all("div", class_="chapter_unit"):
         _point_list = []
         _raw_points = _chapter_unit.find_all("li")
@@ -214,7 +214,7 @@ def decode_questions_info(html_content) -> dict:
         fd = FontDecoder(html_content)  # 加载字体
 
     for div_tag in form_tag.find_all(
-        "div", class_="singleQuesId"
+            "div", class_="singleQuesId"
     ):  # 目前来说无论是单选还是多选的题class都是这个
         if 'fd' in locals():
             q_title = replace_rtn(fd.decode(div_tag.find("div", class_="Zy_TItle").text))
@@ -227,7 +227,7 @@ def decode_questions_info(html_content) -> dict:
             for li_tag in div_tag.find("ul").find_all("li"):
                 q_options += replace_rtn(li_tag.attrs.get("aria-label", li_tag.text)).rstrip('选择') + "\n"
 
-        print(q_title,q_options)
+        print(q_title, q_options)
         q_options = q_options[:-1]  # 去除尾部'\n'
 
         # 尝试使用 data 属性来判断题型
@@ -263,3 +263,76 @@ def decode_questions_info(html_content) -> dict:
     # 处理答题信息
     form_data["answerwqbid"] = ",".join([q["id"] for q in form_data["questions"]]) + ","
     return form_data
+
+
+def decode_live_card(_text: str) -> dict:
+    jobid = ""
+    enc = ""
+    authEnc = ""
+    liveDragEnc = ""
+    liveSwDsEnc = ""
+    liveSetEnc = ""
+    # 使用 re.DOTALL 允许匹配多行文本
+    matchs = re.findall(r'"_jobid"\s*:\s*"live-(\d+)"', _text, re.DOTALL)
+
+    if matchs:
+        jobid = matchs
+    matchs = re.findall(r'"enc"\s*:\s*"(.*?)"', _text, re.DOTALL)
+    if matchs:
+        enc = matchs
+    matchs = re.findall(r'"authEnc"\s*:\s*"(.*?)"', _text, re.DOTALL)
+    if matchs:
+        authEnc = matchs
+    matchs = re.findall(r'"liveDragEnc"\s*:\s*"(.*?)"', _text, re.DOTALL)
+    if matchs:
+        liveDragEnc = matchs
+    matchs = re.findall(r'"liveSwDsEnc"\s*:\s*"(.*?)"', _text, re.DOTALL)
+    if matchs:
+        liveSwDsEnc = matchs
+    matchs = re.findall(r'"liveSetEnc"\s*:\s*"(.*?)",', _text, re.DOTALL)
+    if matchs:
+        liveSetEnc = matchs
+    return {
+        'jobids': jobid,
+        'encs': enc,
+        'authEncs': authEnc,
+        'liveDragEncs': liveDragEnc,
+        'liveSwDsEncs': liveSwDsEnc,
+        'liveSetEnc': liveSetEnc
+    }
+
+
+def decode_live_info(_text: str) -> dict:
+    liveId = ""
+    streamName = ""
+    vodid = ""
+    uInfo = ""
+    videoPlayStartTime = 0
+    videoLongtime = 0
+    match = re.search(r'"liveId":\s*(\d+),', _text, re.DOTALL)
+    if match:
+        liveId = match.group(1)
+    match = re.search(r"var streamName\s*=\s*'(.*?)'\s*;", _text, re.DOTALL)
+    if match:
+        streamName = match.group(1)
+    match = re.search(r"var vodid\s*=\s*'(.*?)'\s*;", _text, re.DOTALL)
+    if match:
+        vodid = match.group(1)
+    match = re.search(r"var uInfo\s*=\s*'(.*?)'\s*;", _text, re.DOTALL)
+    if match:
+        uInfo = match.group(1)
+    match = re.search(r"'videoLongtime'\s*:\s*'(\d+)'", _text, re.DOTALL)
+    if match:
+        videoLongtime = match.group(1)
+    match = re.search(r"var videoPlayStartTime\s*=\s*(\d+)\s*;", _text, re.DOTALL)
+    if match:
+        videoPlayStartTime = match.group(1)
+
+    return {
+        'liveId': liveId,
+        'streamName': streamName,
+        'vodid': vodid,
+        'videoLongtime': videoLongtime,
+        'uInfo': uInfo,
+        'videoPlayStartTime': videoPlayStartTime
+    }

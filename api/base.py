@@ -16,7 +16,7 @@ from api.decode import (
     decode_course_point,
     decode_course_card,
     decode_course_folder,
-    decode_questions_info,
+    decode_questions_info, decode_live_card, decode_live_info
 )
 from api.answer import *
 
@@ -56,7 +56,7 @@ class Account:
 
 
 class Chaoxing:
-    def __init__(self, account: Account = None, tiku: Tiku = None,**kwargs):
+    def __init__(self, account: Account = None, tiku: Tiku = None, **kwargs):
         self.account = account
         self.cipher = AESCipher()
         self.tiku = tiku
@@ -176,15 +176,15 @@ class Chaoxing:
         ).hexdigest()
 
     def video_progress_log(
-        self,
-        _session,
-        _course,
-        _job,
-        _job_info,
-        _dtoken,
-        _duration,
-        _playingTime,
-        _type: str = "Video",
+            self,
+            _session,
+            _course,
+            _job,
+            _job_info,
+            _dtoken,
+            _duration,
+            _playingTime,
+            _type: str = "Video",
     ):
         if "courseId" in _job["otherinfo"]:
             _mid_text = f"otherInfo={_job['otherinfo']}&"
@@ -225,7 +225,7 @@ class Chaoxing:
             return {"isPassed": False}  # 返回一个字典，确保调用代码不会出错
 
     def study_video(
-        self, _course, _job, _job_info, _speed: float = 1.0, _type: str = "Video"
+            self, _course, _job, _job_info, _speed: float = 1.0, _type: str = "Video"
     ):
         if _type == "Video":
             _session = init_session(isVideo=True)
@@ -261,7 +261,8 @@ class Chaoxing:
                 _wait_time = get_random_seconds()
                 if _playingTime + _wait_time >= int(_duration):
                     _wait_time = int(_duration) - _playingTime
-                    _isPassed = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, _duration, _duration, _type)
+                    _isPassed = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, _duration,
+                                                        _duration, _type)
                     if _isPassed['isPassed']:
                         _isFinished = True
                 # 播放进度条
@@ -320,7 +321,7 @@ class Chaoxing:
                     return answer
 
                 for i in range(
-                    random.choices([2, 3, 4], weights=[0.1, 0.5, 0.4], k=1)[0]
+                        random.choices([2, 3, 4], weights=[0.1, 0.5, 0.4], k=1)[0]
                 ):  # 此处表示随机多选答案几率：2个 10%, 3个 50%, 4个 40%
                     _choice = random.choice(_op_list)
                     _op_list.remove(_choice)
@@ -329,8 +330,8 @@ class Chaoxing:
                 answer = "".join(sorted(answer))
             elif q["type"] == "single":
                 answer = random.choice(options.split("\n"))[
-                    :1
-                ]  # 取首字为答案, 例如A或B
+                         :1
+                         ]  # 取首字为答案, 例如A或B
             # 判断题处理
             elif q["type"] == "judgement":
                 # answer = self.tiku.jugement_select(_answer)
@@ -404,26 +405,28 @@ class Chaoxing:
                     while retries < max_retries:
                         try:
                             _resp = func(*args, **kwargs)
-                            
+
                             # 未创建完成该测验则不进行答题，目前遇到的情况是未创建完成等同于没题目
                             if '教师未创建完成该测验' in _resp.text:
                                 raise Exception(f"教师未创建完成该测验")
 
                             questions = decode_questions_info(_resp.text)
-                    
+
                             if _resp.status_code == 200 and questions.get("questions"):
                                 return (_resp, questions)
-                    
-                            logger.warning(f"无效响应 (Code: {getattr(_resp, 'status_code', 'Unknown')}), 重试中... ({retries+1}/{max_retries})")
-                
+
+                            logger.warning(
+                                f"无效响应 (Code: {getattr(_resp, 'status_code', 'Unknown')}), 重试中... ({retries + 1}/{max_retries})")
+
                         except requests.exceptions.RequestException as e:
-                            logger.warning(f"请求失败: {str(e)[:50]}, 重试中... ({retries+1}/{max_retries})")
+                            logger.warning(f"请求失败: {str(e)[:50]}, 重试中... ({retries + 1}/{max_retries})")
                         retries += 1
                         time.sleep(delay * (2 ** retries))
                     raise Exception(f"超过最大重试次数 ({max_retries})")
-                return wrapper
-            return decorator
 
+                return wrapper
+
+            return decorator
 
         # 学习通这里根据参数差异能重定向至两个不同接口, 需要定向至https://mooc1.chaoxing.com/mooc-ans/workHandle/handle
         _session = init_session()
@@ -447,27 +450,27 @@ class Chaoxing:
         @with_retry(max_retries=3, delay=1)
         def fetch_response():
             return requests.get(
-                    _url,
-                    headers=headers,
-                    cookies=cookies,
-                    verify=False,
-                    params={
-                        "api": "1",
-                        "workId": _job["jobid"].replace("work-", ""),
-                        "jobid": _job["jobid"],
-                        "originJobId": _job["jobid"],
-                        "needRedirect": "true",
-                        "skipHeader": "true",
-                        "knowledgeid": str(_job_info["knowledgeid"]),
-                        "ktoken": _job_info["ktoken"],
-                        "cpi": _job_info["cpi"],
-                        "ut": "s",
-                        "clazzId": _course["clazzId"],
-                        "type": "",
-                        "enc": _job["enc"],
-                        "mooc2": "1",
-                        "courseid": _course["courseId"],
-                    }
+                _url,
+                headers=headers,
+                cookies=cookies,
+                verify=False,
+                params={
+                    "api": "1",
+                    "workId": _job["jobid"].replace("work-", ""),
+                    "jobid": _job["jobid"],
+                    "originJobId": _job["jobid"],
+                    "needRedirect": "true",
+                    "skipHeader": "true",
+                    "knowledgeid": str(_job_info["knowledgeid"]),
+                    "ktoken": _job_info["ktoken"],
+                    "cpi": _job_info["cpi"],
+                    "ut": "s",
+                    "clazzId": _course["clazzId"],
+                    "type": "",
+                    "enc": _job["enc"],
+                    "mooc2": "1",
+                    "courseid": _course["courseId"],
+                }
             )
 
         final_resp = {}
@@ -478,7 +481,7 @@ class Chaoxing:
         except Exception as e:
             logger.error(f"请求失败: {e}")
             return 0
-        
+
         _ORIGIN_HTML_CONTENT = final_resp.text  # 用于配合输出网页源码, 帮助修复#391错误
 
         # 搜题
@@ -487,7 +490,7 @@ class Chaoxing:
         for q in questions["questions"]:
             logger.debug(f"当前题目信息 -> {q}")
             # 添加搜题延迟 #428 - 默认0s延迟
-            query_delay = self.kwargs.get("query_delay",0)
+            query_delay = self.kwargs.get("query_delay", 0)
             time.sleep(query_delay)
             res = self.tiku.query(q)
             answer = ""
@@ -503,7 +506,7 @@ class Chaoxing:
                     for _a in clean_res(multi_cut(res)):
                         for o in options_list:
                             if (
-                                _a in o
+                                    _a in o
                             ):
                                 answer += o[:1]
                     # 对答案进行排序, 否则会提交失败
@@ -519,9 +522,9 @@ class Chaoxing:
                 elif q["type"] == "judgement":
                     answer = "true" if self.tiku.jugement_select(res) else "false"
                 elif q["type"] == "completion":
-                    if isinstance(res,list):
+                    if isinstance(res, list):
                         answer = "".join(answer)
-                    elif isinstance(res,str):
+                    elif isinstance(res, str):
                         answer = res
                 else:
                     # 其他类型直接使用答案 （目前仅知有简答题，待补充处理）
@@ -543,11 +546,11 @@ class Chaoxing:
         # 提交模式  现在与题库绑定,留空直接提交, 1保存但不提交
         if self.tiku.get_submit_params() == "1":
             questions["pyFlag"] = "1"
-        elif cover_rate >= self.tiku.COVER_RATE*100 or self.rollback_times >= 1:
+        elif cover_rate >= self.tiku.COVER_RATE * 100 or self.rollback_times >= 1:
             questions["pyFlag"] = ""
         else:
             questions["pyFlag"] = "1"
-            logger.info(f"章节检测题库覆盖率低于{self.tiku.COVER_RATE*100:.0f}%，不予提交")
+            logger.info(f"章节检测题库覆盖率低于{self.tiku.COVER_RATE * 100:.0f}%，不予提交")
         # 组建提交表单
         if questions["pyFlag"] == "1":
             for q in questions["questions"]:
@@ -618,3 +621,38 @@ class Chaoxing:
         else:
             _resp_json = _resp.json()
             logger.info(f"阅读任务学习 -> {_resp_json['msg']}")
+
+    def study_live_replay(self, _chapterId, _courseid, _clazzid, _cpi, enc):
+        _session = init_session()
+        # 获取jobid
+        url = f"https://mooc1.chaoxing.com/mooc-ans/knowledge/cards?clazzid={_clazzid}&courseid={_courseid}&knowledgeid={_chapterId}&num=0&ut=s&cpi={_cpi}&v=20160407-3&mooc2=0&isMicroCourse=false&editorPreview=0"
+        _resp = _session.get(url)
+        live_card = decode_live_card(_resp.text)
+        for jobid, enc, authEnc, liveDragEnc, liveSwDsEnc, liveSetEnc in zip(*live_card.values()):
+            logger.info(f"{jobid}, {enc}, {authEnc}, {liveDragEnc}, {liveSwDsEnc}, {liveSetEnc}")
+            # 用jobid获取直播回放id
+            _dc = int(time.time() * 1000)
+            url = f"https://mooc1.chaoxing.com/ananas/live/getnewliveid?oliveid={jobid}&_dc={_dc}"
+            _resp = _session.get(url)
+            newLiveId = json.loads(_resp.text)["newLiveId"]
+            # 获取对应参数
+            url = f"https://zhibo.chaoxing.com/{newLiveId}?courseId={_courseid}&classId={_clazzid}&knowledgeId={_chapterId}&jobId=live-{jobid}&userId={self.get_uid()}&rt=0.9&livesetenc={liveSetEnc}&isjob=true&watchingInCourse=1&customPara1={_clazzid}{_courseid}&customPara2={authEnc}&jobfs=0&isNotDrag=1&livedragenc={liveDragEnc}&sw=0&ds=0&liveswdsenc={liveSwDsEnc}"
+            _resp = _session.get(url)
+            video_info = decode_live_info(_resp.text)
+            logger.info(f"直播回放数据获取成功")
+            logger.info("开始写记录")
+            # watchMoment
+            for save_time in range(int(video_info["videoPlayStartTime"]), int(video_info["videoLongtime"]), 30):
+                url = f"https://zhibo.chaoxing.com/apis/live/put/watchMoment?liveId={newLiveId}&streamName={video_info["streamName"]}&vdoid={video_info["vodid"]}&watchMoment={save_time + random.randint(100001, 999999) * 0.0000001}&t={time.time() * 1000}&u={video_info["uInfo"]}"
+                _resp = _session.get(url)
+                url = f"https://zhibo.chaoxing.com/saveTimePc?userId={self.get_uid()}&courseId={_courseid}&streamName={video_info["streamName"]}&vdoid={video_info["vodid"]}&isStart=1"
+                _resp = _session.get(url)
+                logger.info(f"进度 {save_time}/{video_info["videoLongtime"]}")
+                sleep_duration = random.uniform(1, 2)
+                time.sleep(sleep_duration)  # 避免请求过快导致异常, 所以引入随机sleep
+
+            url = f"https://zhibo.chaoxing.com/apis/live/put/watchMoment?liveId={newLiveId}&streamName={video_info["streamName"]}&vdoid={video_info["vodid"]}&watchMoment={video_info["videoLongtime"]}&t={time.time() * 1000}&u={video_info["uInfo"]}"
+            _session.get(url)
+            url = f"https://zhibo.chaoxing.com/saveTimePc?userId={self.get_uid()}&courseId={_courseid}&streamName={video_info["streamName"]}&vdoid={video_info["vodid"]}&isStart=1"
+            _session.get(url)
+            logger.info("写记录完成")
